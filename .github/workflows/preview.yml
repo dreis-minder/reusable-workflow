@@ -1,0 +1,66 @@
+name: Reusable Workflow
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  Pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Project
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        run: npm run lint
+
+      - name: Run Typescript
+        run: npx tsc
+
+      - name: Run Unit Testing
+        run: npm run test:ci
+
+      - name: Build App
+        run: npm run build
+
+      - name: Run E2E Testing
+        id: e2e
+        uses: cypress-io/github-action@v5
+        with:
+          project: ./
+          browser: chrome
+          install: false
+          start: npm start
+          wait-on: "http://localhost:3000"
+
+      - name: Upload Cypress E2E Reports
+        if: success() || steps.e2e.conclusion == 'failure'
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: cypress-e2e-report
+          path: cypress/reports
+
+      - name: Run Component Testing
+        id: component
+        uses: cypress-io/github-action@v5
+        with:
+          install: false
+          component: true
+
+      - name: Upload Cypress Components Reports
+        if: success() || steps.component.conclusion == 'failure'
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: cypress-components-report
+          path: cypress/reports
