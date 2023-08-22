@@ -1,9 +1,5 @@
 name: Reusable Workflow
 on:
-  push:
-    branches-ignore:
-      - main
-  workflow_dispatch:
   workflow_call:
 
 jobs:
